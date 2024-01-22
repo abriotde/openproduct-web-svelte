@@ -1,5 +1,6 @@
 <script>
 import Input from './lib/Input.svelte';
+import Categories from './lib/Categories.svelte';
 import {fly, fade } from 'svelte/transition';
 // import { writable } from 'svelte/store';
 
@@ -7,24 +8,42 @@ import {fly, fade } from 'svelte/transition';
 const urlParams = new URLSearchParams(window.location.search);
 const producer_id = urlParams.get('p');
 
+let name = "";
 let firstname = "";
 let lastname = "";
+let categories = "";
 let address = "";
 let email = "";
 let phoneNumber = "";
-let postcode = "";
+let postCode = "";
 let city = "";
+let website = ""
 let json = "";
 $: producer = {
+	name,
 	firstname,
 	lastname,
+	categories,
 	address,
 	email,
 	phoneNumber,
-	postcode,
+	postCode,
 	city,
+	website,
 	json
 };
+function loadProducer(producer) {
+	name = producer.name;
+	firstname = producer.firstname;
+	lastname = producer.lastname;
+	categories = producer.categories;
+	address = producer.address;
+	email = producer.email;
+	phoneNumber = producer.phoneNumber;
+	postCode = producer.postCode;
+	city = producer.city;
+	website = producer.website;
+}
 const request = new XMLHttpRequest();
 try {
 	const url = "/producers/get/"+producer_id;
@@ -33,13 +52,7 @@ try {
 	request.onload = function() {
 		producer = request.response;
 		console.log("Response: ",producer);
-		firstname = producer.firstname;
-		lastname = producer.lastname;
-		address = producer.address;
-		email = producer.email;
-		phoneNumber = producer.phoneNumber;
-		postcode = producer.postcode;
-		city = producer.city;
+		loadProducer(producer);
     }
 	request.onerror = function () {
 		console.error("Erreur XHR");
@@ -54,7 +67,8 @@ try {
 	let isSuccessVisible = false;
 	let submitted = false;
 	
-	const errMessage = "All the fields are mandatory";
+	const errMessageDefault = "All the fields are mandatory";
+	let errMessage = errMessageDefault;
 	
 	function handleSubmit(e) {
 		let surveyForm = document.getElementById('producerEditForm');
@@ -63,21 +77,34 @@ try {
 		if (!hasError) {
 			const url = "/producers/save/"+producer_id;
 			request.open("POST", url);
+			producer.name = firstname;
 			producer.firstname = firstname;
 			producer.lastname = lastname;
+			producer.categories = categories;
 			producer.address = address;
 			producer.email = email;
 			producer.phoneNumber = phoneNumber;
-			producer.postcode = postcode;
+			producer.postCode = postCode;
 			producer.city = city;
+			producer.website = website;
 			producer.json = "1";
 			request.responseType = "json";
 			request.onload = function() {
 				console.log(request.response);
-				isSuccessVisible = true;
-				setTimeout(function(){
-					isSuccessVisible = false;
-				}, 4000);
+				if (request.response && request.response.ok) {
+					isSuccessVisible = true;
+					loadProducer(request.response.vals);
+					setTimeout(function(){
+						isSuccessVisible = false;
+					}, 4000);
+				} else {
+					hasError = true;
+					errMessage = request.response.error;
+					setTimeout(function(){
+						hasError = false;
+						errMessage = errMessageDefault;
+					}, 4000);
+				}
 			}
 			request.onerror = function () {
 				console.error("Erreur XHR");
@@ -88,9 +115,10 @@ try {
 	}
 	let emailRegexp = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
 	let phoneRegexp = /^\+?[0-9 ]{5,15}$/
-	let postcodeRegexp = /^[0-9]{5}$/
+	let postCodeRegexp = /^[0-9]{5}$/
 	let stringRegexp = /^[a-zA-Zéèêàù -]{2,64}$/
 	let addressRegexp = /^[a-zA-Z0-9éèêàù -]{2,64}$/
+	let websiteRegexp = /^https?:\/\/[a-zA-Z0-9.]{2,64}$/
 </script>
 
 
@@ -108,8 +136,10 @@ try {
 		<h2>Edit producer</h2>
 		<div class="form-group">
 			<h3>Identité</h3>
+			<Input label="Company name" name="name" bind:value={name} />
 			<Input label="First name" name="firstname" bind:value={firstname} />
 			<Input label="Last name" name="lastname" bind:value={lastname} />
+			<Categories label="Categories" name="categories" bind:value={categories} />
 		</div>
 
 		<div class="form-group">
@@ -117,8 +147,9 @@ try {
 			<Input label="Phone number" name="phoneNumber" bind:value={phoneNumber} regexp={phoneRegexp} errorMsg="Must contain only digit and space (And eventually a + at begening)" />
 			<Input label="Email" name="email" bind:value={email} regexp={emailRegexp} errorMsg="Must have an @." />
 			<Input label="Address" name="address" bind:value={address} regexp={addressRegexp} errorMsg="Contains invalid characters." />
-			<Input label="Post code" name="postcode" bind:value={postcode} regexp={postcodeRegexp} errorMsg="Must have 5 digit. Use 0 if needed." />
+			<Input label="Post code" name="postCode" bind:value={postCode} regexp={postCodeRegexp} errorMsg="Must have 5 digit. Use 0 if needed." />
 			<Input label="City" name="city" bind:value={city} regexp={stringRegexp} errorMsg="Contains invalid characters." />
+			<Input label="Website" name="website" bind:value={website} regexp={websiteRegexp} errorMsg="This is not a valid web Url." />
 		</div>
 
 		<button class="btn btn-submit" on:click={() => submitted = true}>Continue</button>
@@ -166,5 +197,13 @@ try {
 		padding: 6px;
 		text-align: center;
 		border-radius: 3px;
+	}
+	:global(.form-control) {
+		border-radius: 3px;
+		vertical-align: baseline;
+	}
+	:global(.error-text) {
+		border: 1px solid #c00 !important;
+		color: #c00;
 	}
 </style>

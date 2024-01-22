@@ -28,18 +28,10 @@
 </div>
 
 <style>
-	.form-control {
-		border-radius: 3px;
-		vertical-align: baseline;
-	}
 	input:invalid {
 		border: 1px solid #c00;
 	}
 	input:focus:invalid {
 		outline: 1px solid #c00;
-	}
-	.error-text {
-		border: 1px solid #c00 !important;
-		color: #c00;
 	}
 </style>
