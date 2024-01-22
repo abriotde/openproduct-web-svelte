@@ -1,0 +1,9 @@
+
+https://www.okupter.com/blog/php-embed-svelte
+
+npm create vite@latest
+npm run build
+npm run preview
+
+ln -s ~/Documents/OpenProduct/openproduct-web-svelte/dist/ ~/Documents/OpenProduct/openproduct-web/public/svelte
+
