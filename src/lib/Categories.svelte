@@ -1,4 +1,5 @@
 <script>
+	import {afterUpdate} from 'svelte';
 	export let label = "";
 	export let name = "";
 	export let value = "";
@@ -18,7 +19,7 @@
 				{"val":"AC", "text":"Céréaliers (Céréales, pain, pomme de terre."},
 				{"val":"AM", "text":"Maraichers"},
 				{"val":"AL", "text":"Fromagers (Ou lait)"},
-				{"val":"AP", "text":"Poisson<"},
+				{"val":"AP", "text":"Poisson"},
 				{"val":"AF", "text":"Fruit (Jus, Confitures)"},
 				{"val":"AB", "text":"Boissons avec ou sans alcool"},
 				{"val":"AG", "text":"Grossiste/Epicerie/Restaurant (Ne produit pas, mais vends du local)"},
@@ -49,32 +50,37 @@
 	let subval = "";
 	let subcategories = [];
 	let error = "";
+	let initialized = false;
 	const noneObject = {};
 	function init() {
-		console.log("init(",value,")");
+		// console.log("init(",value,")");
 		for (var categorie of existsCategories) {
-			console.log("categorie",categorie);
+			// console.log("categorie",categorie);
 			if (categorie.val==value) {
 				selected = categorie;
-				console.log("init(",value,") => ", selected); 
+				// console.log("init(",value,") => ", selected); 
 				return;
 			}
 			if (("subcategories" in categorie) && categorie.subcategories!=undefined && categorie.subcategories.length>0) {
-				console.log("has subcategories");
+				// console.log("has subcategories");
 				subval = categorie;
-				for (var subCategorie of existsCategories) {
-					console.log("subcategorie:",subCategorie);
+				for (var subCategorie of categorie.subcategories) {
+					// console.log("subcategorie:",subCategorie);
 					if (subCategorie.val==value) {
 						selected = categorie;
+						subselect = subCategorie;
 						subcategories = categorie.subcategories;
-						console.log("init(",value,") => ", selected); 
+						// console.log("init(",value,") => ", selected); 
 						return;
 					}
 				}
 			}
 		}
 	}
-	init();
+	afterUpdate(async () => {
+		init();
+		// console.log('the component just updated');
+	});
 	function displaySubCategories() {
 		if (("val" in selected) && selected.val!=undefined) {
 			value = selected.val;
@@ -85,8 +91,7 @@
 		} else {
 			subcategories = [];
 		}
-		console.log("selected:",selected);
-		console.log("subcategories:",subcategories);
+		// console.log("subcategories:",subcategories);
 	}
 </script>
 <div class="form-unit">

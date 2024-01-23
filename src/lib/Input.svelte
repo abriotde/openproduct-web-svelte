@@ -10,7 +10,7 @@
 	};
 	let error = "";
 	function handleInput({ target: t }) {
-		if (validator(t.value)) {
+		if (t.value=="" || validator(t.value)) {
 			value = t.value;
 			t.setCustomValidity("");
 		} else {
