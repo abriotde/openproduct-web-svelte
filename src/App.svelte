@@ -13,18 +13,23 @@ let firstname = "";
 let lastname = "";
 let categories = "";
 let address = "";
+let latitude = "";
+let longitude = "";
 let email = "";
 let phoneNumber = "";
 let postCode = "";
 let city = "";
 let website = ""
 let json = "";
+let coordinatesChecked = true;
 $: producer = {
 	name,
 	firstname,
 	lastname,
 	categories,
 	address,
+	latitude,
+	longitude,
 	email,
 	phoneNumber,
 	postCode,
@@ -38,6 +43,8 @@ function loadProducer(producer) {
 	lastname = producer.lastname;
 	categories = producer.categories;
 	address = producer.address;
+	latitude = producer.latitude;
+	longitude = producer.longitude;
 	email = producer.email;
 	phoneNumber = producer.phoneNumber;
 	postCode = producer.postCode;
@@ -69,12 +76,55 @@ try {
 	
 	const errMessageDefault = "All the fields are mandatory";
 	let errMessage = errMessageDefault;
-	
+
+	function getExpectedCoordinates(form) {
+		var address = (form.address.value+" "+form.postCode.value+" "+form.city.value).trim();
+		return new Promise((resolve) => {
+			getCoordinateFromAddress(address, 
+				(x, y) => { resolve([x, y]); }
+			);
+	    });
+	}
+	async function checkAddress(form) {
+		if (!coordinatesChecked) {
+			console.log("check coordinates");
+			const coordinates = await getExpectedCoordinates(form);
+			let x = coordinates[0], y = coordinates[1];
+			let lat = form.latitude.value, long = form.longitude.value;
+			console.log(coordinates," VS ",lat,long);
+			if (lat>x+0.1 || lat<x-0.1 || long>y+0.1 || long<y-0.1) {
+				displayError("Expected coordinates are [ "+x+" , "+y+" ]");
+				return false;
+			} else {
+				coordinatesChecked = true;
+			}
+		} else {
+			console.log("coordinates ever checked");
+		}
+		return true;
+	}
+	function checkInputs(form) {
+		let invalid = form.querySelectorAll('input:invalid');
+		if (invalid.length != 0) {
+			displayError(errMessageDefault);
+			return false;
+		}
+		return true;
+	}
+	function checkForm() {
+		let form = document.getElementById('producerEditForm');
+		hasError = false;
+		return checkInputs(form) && checkAddress(form);
+	}
+	function displayError(err) {
+		hasError = true;
+		errMessage = err;
+		setTimeout(function(){
+			hasError = false;
+		}, 4000);
+	}
 	function handleSubmit(e) {
-		let surveyForm = document.getElementById('producerEditForm');
-		let invalid = surveyForm.querySelectorAll('input:invalid');
-		hasError = invalid.length != 0;
-		if (!hasError) {
+		if (checkForm()) {
 			const url = "/producers/save/"+producer_id;
 			request.open("POST", url);
 			producer.name = firstname;
@@ -82,6 +132,8 @@ try {
 			producer.lastname = lastname;
 			producer.categories = categories;
 			producer.address = address;
+			producer.latitude = latitude;
+			producer.longitude = longitude;
 			producer.email = email;
 			producer.phoneNumber = phoneNumber;
 			producer.postCode = postCode;
@@ -98,12 +150,7 @@ try {
 						isSuccessVisible = false;
 					}, 4000);
 				} else {
-					hasError = true;
-					errMessage = request.response.error;
-					setTimeout(function(){
-						hasError = false;
-						errMessage = errMessageDefault;
-					}, 4000);
+					displayError(request.response.error);
 				}
 			}
 			request.onerror = function () {
@@ -119,20 +166,15 @@ try {
 	let stringRegexp = /^[a-zA-Zéèêàù -]{2,64}$/
 	let addressRegexp = /^[a-zA-Z0-9éèêàù -]{2,64}$/
 	let websiteRegexp = /^https?:\/\/[a-zA-Z0-9.]{2,64}$/
+	let latlongRegexp = /^[0-9]{1,2}\.[0-9]{6,15}$/
 </script>
 
+<svelte:head>
+	<script src="/js/openproduct.js" ></script>
+</svelte:head>
 
-{#if hasError == true}
-		<p class="error-alert">{errMessage}</p>
-{:else}
-	{#if isSuccessVisible}
-		<p class="sucess-alert" transition:fade={{duration:150}}>Data updated successfully</p>
-	{/if}
-{/if}
-<p>Producer : {JSON.stringify(producer)}</p>
 <div class="container">
 	<form id="producerEditForm" class="mt-4" class:submitted on:submit|preventDefault={handleSubmit}>
-		// https://svelte.dev/repl/c399ebf9700b4b25bf6fce7d0b3d4ffd?version=4.2.9
 		<h2>Edit producer</h2>
 		<div class="form-group">
 			<h3>Identité</h3>
@@ -146,16 +188,30 @@ try {
 			<h3>Coordonnées</h3>
 			<Input label="Phone number" name="phoneNumber" bind:value={phoneNumber} regexp={phoneRegexp} errorMsg="Must contain only digit and space (And eventually a + at begening)" />
 			<Input label="Email" name="email" bind:value={email} regexp={emailRegexp} errorMsg="Must have an @." />
-			<Input label="Address" name="address" bind:value={address} regexp={addressRegexp} errorMsg="Contains invalid characters." />
-			<Input label="Post code" name="postCode" bind:value={postCode} regexp={postCodeRegexp} errorMsg="Must have 5 digit. Use 0 if needed." />
-			<Input label="City" name="city" bind:value={city} regexp={stringRegexp} errorMsg="Contains invalid characters." />
 			<Input label="Website" name="website" bind:value={website} regexp={websiteRegexp} errorMsg="This is not a valid web Url." />
 		</div>
 
+		<div class="form-group">
+			<h3>Address</h3>
+			<Input label="Latitude" name="latitude" bind:value={latitude} regexp={latlongRegexp} errorMsg="Must be a number with a precision of minimum 6 digit" on:change={e => coordinatesChecked=false} />
+			<Input label="Longitude" name="longitude" bind:value={longitude} regexp={latlongRegexp} errorMsg="Must be a number with a precision of minimum 6 digit" on:change={e => coordinatesChecked=false} />
+			<Input label="Address" name="address" bind:value={address} regexp={addressRegexp} errorMsg="Contains invalid characters." on:change={e => coordinatesChecked=false} />
+			<Input label="Post code" name="postCode" bind:value={postCode} regexp={postCodeRegexp} errorMsg="Must have 5 digit. Use 0 if needed." on:change={e => coordinatesChecked=false} />
+			<Input label="City" name="city" bind:value={city} regexp={stringRegexp} errorMsg="Contains invalid characters." on:change={e => coordinatesChecked=false} />
+		</div>
+
+{#if hasError == true}
+		<p class="error-alert">{errMessage}</p>
+{:else}
+	{#if isSuccessVisible}
+		<p class="sucess-alert" transition:fade={{duration:150}}>Data updated successfully</p>
+	{/if}
+{/if}
 		<button class="btn btn-submit" on:click={() => submitted = true}>Continue</button>
 	</form>
 </div>
 
+<p>Producer : {JSON.stringify(producer)}</p>
 
 <style>
 	#producerEditForm {
