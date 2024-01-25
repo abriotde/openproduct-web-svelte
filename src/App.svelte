@@ -1,5 +1,6 @@
 <script>
 import Input from './lib/Input.svelte';
+import TextArea from './lib/TextArea.svelte';
 import Categories from './lib/Categories.svelte';
 import {fly, fade } from 'svelte/transition';
 // import { writable } from 'svelte/store';
@@ -19,7 +20,10 @@ let email = "";
 let phoneNumber = "";
 let postCode = "";
 let city = "";
-let website = ""
+let website = "";
+let text = "";
+let openingHours = "";
+let shortDescription = "";
 let json = "";
 let coordinatesChecked = true;
 $: producer = {
@@ -35,6 +39,9 @@ $: producer = {
 	postCode,
 	city,
 	website,
+	text,
+	openingHours,
+	shortDescription,
 	json
 };
 function loadProducer(producer) {
@@ -50,6 +57,9 @@ function loadProducer(producer) {
 	postCode = producer.postCode;
 	city = producer.city;
 	website = producer.website;
+	text = producer.text;
+	openingHours = producer.openingHours;
+	shortDescription = producer.shortDescription;
 }
 const request = new XMLHttpRequest();
 try {
@@ -139,6 +149,9 @@ try {
 			producer.postCode = postCode;
 			producer.city = city;
 			producer.website = website;
+			producer.text = text;
+			producer.openingHours = openingHours;
+			producer.shortDescription = shortDescription;
 			producer.json = "1";
 			request.responseType = "json";
 			request.onload = function() {
@@ -200,6 +213,13 @@ try {
 			<Input label="City" name="city" bind:value={city} regexp={stringRegexp} errorMsg="Contains invalid characters." on:change={e => coordinatesChecked=false} />
 		</div>
 
+		<div class="form-group">
+			<h3>Notes</h3>
+			<TextArea label="Description" name="text" bind:value={text} />
+			<TextArea label="Short description" name="shortDescription" bind:value={shortDescription} />
+			<TextArea label="Opening hours" name="openingHours" bind:value={openingHours} />
+		</div>
+
 {#if hasError == true}
 		<p class="error-alert">{errMessage}</p>
 {:else}
@@ -215,7 +235,8 @@ try {
 
 <style>
 	#producerEditForm {
-		max-width: 1200px;
+		max-width: 90%;
+		min-width: 200px;
 		margin: 0 auto;
 		text-align: right;
 		background: #00000012;
